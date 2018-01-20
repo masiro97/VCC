@@ -1,0 +1,48 @@
+#include <opencv2/objdetect/objdetect.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <opencv\cv.h>
+#include <opencv\highgui.h>
+
+using namespace std;
+using namespace cv;
+
+int main()
+{
+	Mat frame;
+	Mat grayframe;
+	VideoCapture cap;
+	cap.open(0);
+
+
+	while (cv::waitKey(27) != 'ESC')
+	{
+		cap.read(frame);
+		cvtColor(frame, grayframe, CV_BGR2GRAY);
+		//cvCvtColor(const CvArr* src, CvArr*dst, int code);
+		//src는 8비트, 16비트, 또는 32비트 실수 입력영상이다. dst는 src와 같은 크기, 같은 깊이를 가지며 채널의 수는 다를 수 있는 출력영상이다.
+		//code는 CV_src_color2dst_color의 형태로 입력 src의 컬러와 출력 dst의 컬러 변환을 명시한다. 함수에서 영시한다.
+		//함수에서 영상 헤더의 컬러 정보를 사용하지 않으므로 src와 dst의 정확한 컬러 모델을 명시해야한다.
+
+		GaussianBlur(grayframe, grayframe, Size(11, 11), 2, 2);
+		//영상이미지 ?? 변환 ??
+		vector<Vec3f> circles;
+
+		/// Apply the Hough Transform to find the circles
+		HoughCircles(grayframe, circles, CV_HOUGH_GRADIENT, 2, 20, 100, 155, 20, 300);
+		/// Draw the circles detected
+		for (size_t i = 0; i < circles.size(); i++)
+		{
+			Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+			int radius = cvRound(circles[i][2]);
+			// circle center
+			circle(frame, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+			// circle outline
+			circle(frame, center, radius, Scalar(0, 255, 0), 3, 8, 0);
+		}
+		imshow("Hough circles", frame);
+
+	}
+}

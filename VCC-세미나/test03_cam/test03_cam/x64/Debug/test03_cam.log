@@ -1,0 +1,19 @@
+﻿빌드 시작: 2016-04-06 오후 9:22:33
+     1>2 노드의 "D:\백업자료\VCC\VCC-세미나\test03_cam\test03_cam\test03_cam.vcxproj" 프로젝트(Build 대상)입니다.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /IC:\opencv\build\x64\vc12 /Ic:\opencv\build\include /Zi /nologo /W3 /WX- /sdl /Od /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt "C:\Users\혜영\Desktop\fast_opencv-1.0\fast_opencv-1.0\test.cc"
+         test.cc
+     1>c:\opencv\build\include\opencv2\flann\dist.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"D:\백업자료\VCC\VCC-세미나\test03_cam\x64\Debug\test03_cam.exe" /INCREMENTAL /NOLOGO /LIBPATH:C:\opencv\build\x64\vc12\lib opencv_calib3d2411d.lib opencv_contrib2411d.lib opencv_core2411d.lib opencv_features2d2411d.lib opencv_flann2411d.lib opencv_gpu2411d.lib opencv_imgproc2411d.lib opencv_ml2411d.lib opencv_objdetect2411d.lib opencv_ts2411d.lib opencv_video2411d.lib opencv_highgui2411d.lib opencv_nonfree2411d.lib opencv_photo2411d.lib opencv_stitching2411d.lib opencv_videostab2411d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"D:\백업자료\VCC\VCC-세미나\test03_cam\x64\Debug\test03_cam.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\백업자료\VCC\VCC-세미나\test03_cam\x64\Debug\test03_cam.lib" /MACHINE:X64 x64\Debug\cvfast.obj
+         x64\Debug\cv_fast_10.obj
+         x64\Debug\cv_fast_11.obj
+         x64\Debug\cv_fast_12.obj
+         x64\Debug\cv_fast_9.obj
+         x64\Debug\test.obj
+         test03_cam.vcxproj -> D:\백업자료\VCC\VCC-세미나\test03_cam\x64\Debug\test03_cam.exe
+     1>"D:\백업자료\VCC\VCC-세미나\test03_cam\test03_cam\test03_cam.vcxproj" 프로젝트를 빌드했습니다(Build 대상).
+
+빌드했습니다.
+
+경과 시간: 00:00:16.77

@@ -1,0 +1,203 @@
+#include "stdafx.h"
+#include <cv.h>
+#include <highgui.h>
+using namespace std;
+void trackObject(IplImage* img);
+IplImage* imgTracking = 0;
+
+void trackObject(IplImage* img, IplImage* img2){
+	CvSeq* contour;  //hold the pointer to a contour
+	CvSeq* result;     //hold sequence of points of a contour
+	CvMemStorage *storage = cvCreateMemStorage(0); //storage area for all contours
+
+	//finding all contours in the image
+	cvFindContours(img, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+
+	//iterating through each contour
+	while (contour)
+	{
+		//obtain a sequence of points of contour, pointed by the variable 'contour'
+		result = cvApproxPoly(contour, sizeof(CvContour), storage, CV_POLY_APPROX_DP, cvContourPerimeter(contour)*0.02, 0);
+
+		//if there are 3  vertices  in the contour(It should be a triangle)
+		if (result->total == 3)
+		{
+			//iterating through each point
+			CvPoint *pt[3];
+			for (int i = 0; i<3; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the triangle
+			cvLine(img2, *pt[0], *pt[1], cvScalar(255, 0, 0), 4);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(255, 0, 0), 4);
+			cvLine(img2, *pt[2], *pt[0], cvScalar(255, 0, 0), 4);
+			//cvCvtColor(frame, imgGrayScale, CV_BGR2GRAY);
+
+		}
+
+		//if there are 4 vertices in the contour(It should be a quadrilateral)
+		else if (result->total == 4)
+		{
+			//iterating through each point
+			CvPoint *pt[4];
+			for (int i = 0; i<4; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the quadrilateral
+			cvLine(img2, *pt[0], *pt[1], cvScalar(0, 255, 0), 4);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(0, 255, 0), 4);
+			cvLine(img2, *pt[2], *pt[3], cvScalar(0, 255, 0), 4);
+			cvLine(img2, *pt[3], *pt[0], cvScalar(0, 255, 0), 4);
+		}
+
+		else if (result->total == 5)
+		{
+			//iterating through each point
+			CvPoint *pt[5];
+			for (int i = 0; i<5; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the quadrilateral
+			cvLine(img2, *pt[0], *pt[1], cvScalar(255, 255, 0), 5);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(255, 255, 0), 5);
+			cvLine(img2, *pt[2], *pt[3], cvScalar(255, 255, 0), 5);
+			cvLine(img2, *pt[3], *pt[4], cvScalar(255, 255, 0), 5);
+			cvLine(img2, *pt[4], *pt[0], cvScalar(255, 255, 0), 5);
+		}
+
+		else if (result->total == 6)
+		{
+			//iterating through each point
+			CvPoint *pt[6];
+			for (int i = 0; i<6; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the quadrilateral
+			cvLine(img2, *pt[0], *pt[1], cvScalar(100, 115, 110), 6);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(100, 115, 110), 6);
+			cvLine(img2, *pt[2], *pt[3], cvScalar(100, 115, 110), 6);
+			cvLine(img2, *pt[3], *pt[4], cvScalar(100, 115, 110), 6);
+			cvLine(img2, *pt[4], *pt[5], cvScalar(100, 115, 110), 6);
+			cvLine(img2, *pt[5], *pt[0], cvScalar(100, 115, 110), 6);
+		}
+
+		//if there are 7  vertices  in the contour(It should be a heptagon)
+		else if (result->total == 7)
+		{
+			//iterating through each point
+			CvPoint *pt[7];
+			for (int i = 0; i<7; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the heptagon
+			cvLine(img2, *pt[0], *pt[1], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[2], *pt[3], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[3], *pt[4], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[4], *pt[5], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[5], *pt[6], cvScalar(0, 0, 110), 4);
+			cvLine(img2, *pt[6], *pt[0], cvScalar(0, 0, 110), 4);
+		}
+
+		else if (result->total == 10)
+		{
+			//iterating through each point
+			CvPoint *pt[10];
+			for (int i = 0; i<10; i++){
+				pt[i] = (CvPoint*)cvGetSeqElem(result, i);
+			}
+
+			//drawing lines around the heptagon
+			cvLine(img2, *pt[0], *pt[1], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[1], *pt[2], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[2], *pt[3], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[3], *pt[4], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[4], *pt[5], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[5], *pt[6], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[6], *pt[7], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[7], *pt[8], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[8], *pt[9], cvScalar(40, 30, 110), 10);
+			cvLine(img2, *pt[9], *pt[0], cvScalar(40, 30, 110), 10);
+			
+		}
+		//obtain the next contour
+		contour = contour->h_next;
+	}
+
+	cvReleaseMemStorage(&storage);
+}
+
+
+
+
+int main(){
+	//load the video file to the memory
+	CvCapture *capture = cvCaptureFromCAM(0);
+
+	if (!capture){
+		printf("Capture failure\n");
+		return -1;
+	}
+
+	IplImage* frame = 0;
+	frame = cvQueryFrame(capture);
+	if (!frame) return -1;
+	
+	//create a blank image and assigned to 'imgTracking' which has the same size of original video
+	imgTracking = cvCreateImage(cvGetSize(frame), IPL_DEPTH_8U, 3);
+	cvZero(imgTracking); //covert the image, 'imgTracking' to black
+
+	cvNamedWindow("Video");
+
+	//iterate through each frames of the video     
+	while (true){
+
+		frame = cvQueryFrame(capture);
+		if (!frame) break;
+		frame = cvCloneImage(frame);
+
+		//smooth the original image using Gaussian kernel
+		cvSmooth(frame, frame, CV_GAUSSIAN, 3, 3);
+
+		//converting the original image into grayscale
+		IplImage* imgGrayScale = cvCreateImage(cvGetSize(frame), 8, 1);
+		IplImage* imgRGBScale = cvCreateImage(cvGetSize(frame),8,3);
+		cvCvtColor(frame, imgGrayScale, CV_BGR2GRAY);
+
+		//thresholding the grayscale image to get better results
+		cvCanny(imgGrayScale, imgGrayScale,	70, 170, 3);
+		//cvThreshold(imgGrayScale, imgGrayScale, 123, 255, 4);
+		
+		//track the possition of the ball
+		trackObject(imgGrayScale,frame);
+
+		// Add the tracking image and the frame
+		//cvAdd(frame, imgTracking, frame);
+
+
+		cvCvtColor(imgGrayScale, imgRGBScale, CV_GRAY2BGR);
+
+
+		cvShowImage("Video", frame);
+
+		//Clean up used images
+		cvReleaseImage(&imgGrayScale);
+		cvReleaseImage(&frame);
+
+		//Wait 10mS
+		int c = cvWaitKey(10);
+		//If 'ESC' is pressed, break the loop
+		if ((char)c == 27) break;
+	}
+
+	cvDestroyAllWindows();
+	cvReleaseImage(&imgTracking);
+	cvReleaseCapture(&capture);
+
+	return 0;
+}

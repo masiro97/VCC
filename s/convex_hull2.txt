@@ -1,0 +1,294 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+/*// opencv 색상 정의
+#define CVX_RED  CV_RGB(255,0,0)
+#define CVX_ORANGE CV_RGB(255,165,0)
+#define CVX_YELLOW CV_RGB(255,255,0)
+#define CVX_GREEN CV_RGB(0,255,0)
+#define CVX_BLUE CV_RGB(0,0,255)
+#define CVX_PINK CV_RGB(255,0,255)
+#define CVX_BLICK CV_RGB(0,0,0)
+#define CVX_WHITE CV_RGB(255,255,255)
+
+
+double GetDistance2D(CvPoint p1, CvPoint p2)
+{
+	return sqrt(pow((float)p1.x - p2.x, 2) + pow((float)p1.y - p2.y, 2));
+}
+void GetMidpoint(CvPoint p1, CvPoint p2, CvPoint *p3)
+{
+	p3->x = (p1.x + p2.x) / 2;
+	p3->y = (p1.y + p2.y) / 2;
+}
+
+
+int main(void)
+{
+	char c;
+	CvCapture *capture = cvCaptureFromCAM(0);
+	IplImage* frame = 0;
+	frame = cvQueryFrame(capture);
+	cvNamedWindow("test");
+	while (1){
+
+		cvGrabFrame(capture);
+		frame = cvRetrieveFrame(capture);
+		IplImage* Img_Gray = cvCreateImage(cvGetSize(frame), IPL_DEPTH_8U, 1);
+		cvCvtColor(frame, Img_Gray, CV_BGR2GRAY);
+
+
+		// 외곽선 추적 및 근사화 변수 초기화
+		CvMemStorage*   m_storage = cvCreateMemStorage(0);  // 배열 자료(점의 좌표가 들어간다)
+		CvMemStorage*   m_storage2 = cvCreateMemStorage(0);  // 배열 자료(점의 좌표가 들어간다)
+		CvSeq*   m_seq = 0;        // 경계 계수를 저장할 변수
+		CvSeq*   m_approxDP_seq = 0;
+		CvSeq*   m_dominant_points = 0;     // 특징점 찾기 위한 변수
+
+		// ConvexHull 변수 초기화 
+		int counterConvexHull;
+		CvSeq* hull = 0;
+		CvSeq* ptseq;
+		CvSeq* defect = cvCreateSeq(CV_SEQ_KIND_GENERIC | CV_32SC2, sizeof(CvContour), sizeof(CvPoint), m_storage);
+
+
+		// moment 변수 선언
+		CvMoments moments;
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		// (1) 외곽선 추적
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		cvFindContours(Img_Gray, m_storage, &m_seq, sizeof(CvContour), CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+		cvDrawContours(frame, m_seq, CVX_RED, CVX_RED, 1,5,8 );     // (Test) 외곽선 추적이 잘되었는지 테스트
+
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		// (2) 외곽선 근사화
+		////////////////////////////////////////////////////////////////////////////////////////////////////
+		if (m_seq != 0)
+		{
+			m_approxDP_seq = cvApproxPoly(m_seq, sizeof(CvContour), m_storage, CV_POLY_APPROX_DP, 3, 1);
+			//cvDrawContours(frame, m_approxDP_seq, CVX_RED, CVX_RED, 1,1,8 ); // (Test) 외곽선 근사화가 잘되었는지 테스트
+
+			int testcount = 0;              // 각 엣지 리스트별로 색상 다르게 출력되는지 확인위한 변수
+			for (CvSeq* c = m_approxDP_seq; c != NULL; c = c->h_next)   // 엣지의 링크드리스트를 순회하면서 각 엣지들에대해서 출력한다.
+			{
+				ptseq = cvCreateSeq(CV_SEQ_KIND_GENERIC | CV_32SC2, sizeof(CvContour), sizeof(CvPoint), m_storage);
+
+				if (c->total > 10)             // 외곽선을 이루는 점의 갯수가 이것보다 미만이면 잡음이라고 판단
+				{
+					for (int i = 0; i < c->total; ++i)
+					{
+						CvPoint* p = CV_GET_SEQ_ELEM(CvPoint, c, i);    // CvSeq로부터좌표를얻어낸다.
+						CvPoint temp;
+						temp.x = p->x;
+						temp.y = p->y;
+
+						cvSeqPush(ptseq, &temp);         // 컨백스헐을 구하기위해 좌표 저장
+
+						//(Test) 링크드리스트를 순회하면서 점을 잘찍나 테스트
+						 //if( testcount == 0 )
+						 //cvCircle(frame, temp, 2, CVX_RED, CV_FILLED); 
+						 //if( testcount == 1 )
+						 //cvCircle(frame, temp, 2, CVX_GREEN, CV_FILLED); 
+						 //if( testcount == 2 )
+						 //cvCircle(frame, temp, 2, CVX_YELLOW, CV_FILLED);
+
+						
+					}
+					////////////////////////////////////////////////////////////////////////////////////////////////////
+					// (3) ConvexHull
+					////////////////////////////////////////////////////////////////////////////////////////////////////
+					hull = cvConvexHull2(ptseq, m_storage2, CV_CLOCKWISE, 0);
+					counterConvexHull = hull->total;
+
+					// 컨벡스헐 공간에서 깊이가가장 큰 부분 구하기 위해 변수 선언(p1,p2 의 중간이 mid)
+					CvPoint p1, p2, mid;
+					double dist;
+
+					defect = cvConvexityDefects(ptseq, hull, m_storage2);
+					CvConvexityDefect *Item;
+
+					for (; defect; defect = defect->h_next)
+					{
+						int nomdef = defect->total;
+						Item = (CvConvexityDefect*)malloc(sizeof(CvConvexityDefect)*nomdef);
+						cvCvtSeqToArray(defect, Item, CV_WHOLE_SEQ);
+
+						for (int i = 0; i < nomdef; i++)
+						{
+							p1.x = Item[i].start->x;
+							p1.y = Item[i].start->y;
+							p2.x = Item[i].end->x;
+							p2.y = Item[i].end->y;
+							dist = GetDistance2D(p1, p2);
+							GetMidpoint(p1, p2, &mid);
+
+							cvCircle(frame, *Item[i].start, 2, CVX_RED, CV_FILLED);    // 컨벡스 결함으로 구한 점(외곽선)그리기
+							cvCircle(frame, *Item[i].depth_point, 2, CVX_GREEN, CV_FILLED);  // 컨벡스 결함으로 구한 점(뎁스깊이가 깊은것)그리기
+							cvLine(frame, p1, p2, CVX_RED, 1, 8, 0);         // 컨벡스헐 외곽선 그리기
+							cvLine(frame, mid, *Item[i].depth_point, CVX_GREEN, 1, 8, 0);   // 컨벡스헐 외곽선과 컨벡스결함으로 구한 점과 연결
+						}
+						free(Item);
+					}
+					////////////////////////////////////////////////////////////////////////////////////////////////////
+					// (4) cvMoment 로 중심점 계산
+					////////////////////////////////////////////////////////////////////////////////////////////////////
+					cvMoments(c, &moments);
+					double M;
+					int x_order, y_order;
+					double cX, cY, m00;
+
+					for (y_order = 0; y_order <= 3; y_order++)
+					{
+						for (x_order = 0; x_order <= 3; x_order++)
+						{
+							if (x_order + y_order > 3)
+								continue;
+
+							M = cvGetSpatialMoment(&moments, x_order, y_order);
+
+							if (x_order == 0 && y_order == 0)
+								m00 = M;
+							else if (x_order == 1 && y_order == 0)
+								cX = M;
+							else if (x_order == 0 && y_order == 1)
+								cY = M;
+						}
+					}
+					cX /= m00;
+					cY /= m00;
+					cvCircle(frame, cvPoint(cvRound(cX), cvRound(cY)), 5, CVX_YELLOW, CV_FILLED); // 중심점 찍어주기
+
+					testcount++;
+				}
+			}
+
+		}
+		cvReleaseMemStorage(&m_storage);
+		cvReleaseMemStorage(&m_storage2);
+
+		cvShowImage("test",frame);
+
+		int c = cvWaitKey(10);
+		//If 'ESC' is pressed, break the loop
+		if ((char)c == 27) break;
+	}
+	cvDestroyAllWindows();
+	cvReleaseCapture(&capture);
+	return 0;
+}
+*/
+
+void main(){
+
+z
+	IplImage* image = 0;
+	CvCapture* capture = cvCaptureFromCAM(0);
+
+	cvNamedWindow("window");
+	while (1){
+
+		image = cvQueryFrame(capture);
+		if (!image) break;
+		CvMemStorage* storage_hull = cvCreateMemStorage(0);
+
+		IplImage* cnt_img = cvCreateImage(cvGetSize(image), IPL_DEPTH_8U, 1);
+
+		cvZero(cnt_img);
+
+		CvPoint pt0;
+
+		CvSeq* ptseq = cvCreateSeq(CV_SEQ_KIND_GENERIC | CV_32SC2, sizeof(CvContour), sizeof(CvPoint), storage_hull);
+
+		CvSeq* hull;
+
+		int hullcount = 0;
+
+
+		int count_ = 0;
+
+
+		for (int i = 0; i < image->height; i++){
+
+
+			for (int j = 0; j < image->width; j++)
+
+
+			{
+
+
+				if ((unsigned char)image->imageData[i*image->widthStep + j * 3] == 255)
+
+
+				{
+
+
+					pt0.x = j;
+
+
+					pt0.y = i;
+
+
+					cvSeqPush(ptseq, &pt0);
+
+
+				}
+
+
+			}
+
+
+		}
+
+
+		if (ptseq->total != 0)
+
+
+		{
+
+
+			hull = cvConvexHull2(ptseq, 0, CV_COUNTER_CLOCKWISE, 0);
+
+
+			hullcount = hull->total;
+
+
+			cvZero(cnt_img);
+
+
+
+
+
+			pt0 = **CV_GET_SEQ_ELEM(CvPoint*, hull, hullcount - 1);
+
+
+			for (int i = 0; i < hullcount; i++)
+
+
+			{
+
+
+				CvPoint pt = **CV_GET_SEQ_ELEM(CvPoint*, hull, i);
+
+
+				cvLine(image, pt0, pt, CV_RGB(0, 255, 0));
+
+
+				//cvLine(image, CvPoint(cvPoint(center_x,center_y)), pt, CV_RGB(255, 0, 0));
+
+
+				pt0 = pt;
+
+
+			}
+		}
+		cvShowImage("window", image);
+		cvReleaseImage(&image);
+
+		int c = cvWaitKey(10);
+		if ((char)c == 27) break;
+
+	}
+	cvDestroyAllWindows();
+	cvReleaseCapture(&capture);
+}

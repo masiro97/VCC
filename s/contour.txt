@@ -1,0 +1,230 @@
+#include <opencv\cv.h>
+#include <opencv\highgui.h>
+#include <opencv2\objdetect\objdetect.hpp>
+#include <opencv2\imgproc\imgproc.hpp>
+#include <iostream>
+#include <stdio.h>
+#include <opencv2\opencv.hpp>
+
+/*void circle(IplImage* gray, IplImage* img){
+CvFont font;
+cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 0, 1, CV_AA);
+
+int i;
+float *p;
+CvSeq *circles = 0;
+CvMemStorage *store = cvCreateMemStorage(0);
+
+CvSize sizeOfImage = cvGetSize(img);
+cvSmooth(gray, gray, CV_GAUSSIAN, 11, 11, 0, 0);
+
+store = cvCreateMemStorage(0);
+
+circles = cvHoughCircles(gray, store, CV_HOUGH_GRADIENT, 1, 100, 20, 50, 10, MAX(gray->width, gray->height));
+
+for (i = 0; i < circles->total; i++){
+p = (float*)cvGetSeqElem(circles, i);
+cvCircle(img, cvPoint(cvRound(p[0]), cvRound(p[1])), 3, CV_RGB(0, 255, 0), -1.8, 0);
+cvCircle(img, cvPoint(cvRound(p[0]), cvRound(p[1])), cvRound(p[2]), CV_RGB(255, 0, 0), 3, 8, 0);
+//cvPutText(img, "Circle", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+}
+}
+*/
+
+IplImage* GetThresholdedImageHSV(IplImage* img)
+{
+	// Create an HSV format image from image passed  
+	IplImage* imgHSV = cvCreateImage(cvGetSize(img), 8, 3);
+
+	cvCvtColor(img, imgHSV, CV_BGR2HSV);
+
+	// Create binary thresholded image acc. to max/min HSV ranges  
+	// For detecting blue gloves in "MOV.MPG - HSV mode  
+	IplImage * img2 = cvCreateImage(cvGetSize(img), 8, 1);
+
+	cvSmooth(imgHSV, imgHSV, 2, 7, 7);
+
+	cvInRangeS(imgHSV, cvScalar(0, 40,60), cvScalar(35, 255, 255), img2);
+	//cvInRangeS(imgHSV, cvScalar(0, 142, 60), cvScalar(15, 255, 255), img2);
+
+	// Tidy up and return thresholded image  
+	cvReleaseImage(&imgHSV);
+	return img2;
+}
+
+void trackObject(IplImage* img1, IplImage* img2){
+	CvFont font;
+	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 1.0, 1.0, 0, 1, CV_AA);
+
+	CvSeq* contour;  //hold the pointer to a contour
+	CvSeq* result;     //hold sequence of points of a contour
+	CvMemStorage *storage = cvCreateMemStorage(0); //storage area for all contours
+	//finding all contours in the image
+	cvFindContours(img1, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
+	//iterating through each contour
+
+	/*CvContourScanner scanner = cvStartFindContours(img1, storage);
+	CvSeq* firstContour = cvFindNextContour(scanner);
+	cvDrawContours(img1, firstContour, cvScalarAll(255), cvScalarAll(255), 100);
+
+	CvPoint2D32f* center;
+	float* radius;
+	cvMinEnclosingCircle(firstContour, center, radius);*/
+
+	while (contour)
+	{
+		double perimeter = cvArcLength(contour, CV_WHOLE_SEQ, -1);
+		double diameter = perimeter / CV_PI;
+		double circle_area = diameter * diameter * CV_PI / 4;
+
+		CvBox2D box;
+		CvBox2D c_box;
+		box = cvMinAreaRect2(contour, 0);
+		//CvPoint2D32f *pt[3];
+		//cvBoxPoints(box, pt[3]);
+
+		int width = img1->width;
+		int height = img1->height;
+
+		/*int width_c = img1->width;
+		int height_c = img1->height;
+
+		CvPoint center;
+		CvSize size;
+		center = cvPointFrom32f(box.center);
+		size.width = cvRound(box.size.width*0.5);
+		size.height = cvRound(box.size.height*0.5);
+
+
+		CvPoint center = cvPointFrom32f(box.center);
+		CvPoint2D32f p2 = cvPoint2D32f(center.x, center.y);
+		CvRect r = cvBoundingRect(contour, 0);
+		//CvPoint2D32f* center = box.center;
+
+		//int circle_area = cvMinEnclosingCircle(contour,p2, (float*)radius);
+		//printf("%d", c_area);
+
+		//CvPoint center;
+
+		*/
+		CvSize size;
+		CvSize c_size;
+
+		size.width = box.size.width;
+		size.height = box.size.height;
+		float box_area = size.width * size.height;
+		float contour_area = cvContourArea(contour, CV_WHOLE_SEQ);
+		float ratio = box_area / contour_area;
+		float radius = size.width / 2;
+		float c_area = radius * radius * CV_PI;
+		float c_ratio = width *height / c_area;
+		printf("%f\n", ratio);
+
+		//obtain a sequence of points of contour, pointed by the variable 'contour'
+		//result = cvApproxPoly(contour, sizeof(CvContour), storage, CV_POLY_APPROX_DP, cvContourPerimeter(contour)*0.02, 0);
+		result = cvApproxPoly(contour, sizeof(CvContour), storage, CV_POLY_APPROX_DP, cvContourPerimeter(contour)*0.02, 0);
+
+
+		//if (cvContourArea(contour, CV_WHOLE_SEQ) < 2000) continue;
+		//if there are 3  vertices  in the contour(It should be a triangle)
+		if (result->total == 3)
+		{
+			cvPutText(img2, "3", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+			//cvCvtColor(frame, imgGrayScale, CV_BGR2GRAY);
+		}
+		/*
+		else if (contour_area >= c_area*1.1 && contour_area <=c_area*1.3 || ( c_ratio >6.0&& c_ratio < 7.0)){
+		cvPutText(img2, "Circle", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+		}
+		*/
+
+		else if (result->total == 4){
+			cvPutText(img2, "4", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+		}
+		//if there are 4 vertices in the contour(It should be a quadrilateral)
+		else if (result->total == 5)
+		{
+			//iterating through each point
+			//drawing lines around the quadrilateral
+			cvPutText(img2, "5", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+
+		}
+
+		else if (result->total == 6)
+		{
+			//drawing lines around the quadrilateral
+			cvPutText(img2, "6", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+		}
+
+		else if (result->total == 7)
+		{//drawing lines around the quadrilateral
+			cvPutText(img2, "7", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+		}
+
+		//if there are 7  vertices  in the contour(It should be a heptagon)
+		else if (result->total == 8)
+		{
+			//drawing lines around the heptagon
+			cvPutText(img2, "8", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+		}
+
+	
+		else if (result->total == 10)
+		{
+			//drawing lines around the heptagon
+			cvPutText(img2, "10", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+
+		}
+		else if (result->total == 12){
+			cvPutText(img2, "12", cvPoint(10, 130), &font, cvScalar(255, 255, 255, 0));
+
+		}
+
+		//obtain the next contour
+		contour = contour->h_next;
+	
+	}
+	cvReleaseMemStorage(&storage);
+}
+
+
+
+int main(){
+
+	CvCapture* capture = cvCaptureFromCAM(1);
+	if (!capture){
+		printf("Capture is failure\n");
+		return -1;
+	}
+
+	IplImage * frame = 0;
+	frame = cvQueryFrame(capture);
+	if (!frame) return -1;
+
+	cvNamedWindow("video");
+
+	while (1){
+		frame = cvQueryFrame(capture);
+		if (!frame) break;
+		frame = cvCloneImage(frame);
+		IplImage * img = cvCreateImage(cvGetSize(frame), 8, 1);
+		//cvSmooth(frame, frame, CV_MEDIAN, 3, 3);
+		//cvSmooth(frame, frame, CV_GAUSSIAN, 3, 3);
+		//cvSmooth(frame, frame, CV_BLUR, 3, 3);
+		img = GetThresholdedImageHSV(frame);
+		cvCanny(img, img, 100, 200, 3);
+		trackObject(img, frame);
+		cvShowImage("opencv", img);
+		cvShowImage("video", frame);
+		cvReleaseImage(&img);
+		cvReleaseImage(&frame);
+
+		int c = cvWaitKey(10);
+		if ((char)c == 27) break;
+	}
+
+	cvDestroyAllWindows();
+	cvReleaseCapture(&capture);
+
+	return 0;
+}

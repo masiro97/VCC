@@ -1,0 +1,132 @@
+
+#include <opencv2/objdetect/objdetect.hpp>
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include <iostream>
+#include <stdio.h>
+#include <opencv\cv.h>
+#include <opencv\highgui.h>
+
+
+using namespace std;
+using namespace cv;
+
+
+#define CVX_RED  CV_RGB(255,0,0)
+#define CVX_ORANGE CV_RGB(255,165,0)
+#define CVX_YELLOW CV_RGB(255,255,0)
+#define CVX_GREEN CV_RGB(0,255,0)
+#define CVX_BLUE CV_RGB(0,0,255)
+#define CVX_PINK CV_RGB(255,0,255)
+#define CVX_BLICK CV_RGB(0,0,0)
+#define CVX_WHITE CV_RGB(255,255,255)
+
+
+
+double GetDistance2D(CvPoint p1, CvPoint p2)
+{
+	return sqrt(pow((float)p1.x - p2.x, 2) + pow((float)p1.y - p2.y, 2));
+}
+
+void GetMidpoint(CvPoint p1, CvPoint p2, CvPoint *p3)
+{
+	p3->x = (p1.x + p2.x) / 2.0;
+	p3->y = (p1.y + p2.y) / 2.0;
+}
+
+
+int main()
+{
+	CvCapture *capture = cvCaptureFromCAM(0);
+
+	if (!capture){
+		printf("Capture failure\n");
+		return -1;
+	}
+
+	IplImage* frame = 0; //openCV에서 사용되는 자료형이다.
+	frame = cvQueryFrame(capture);
+
+	IplImage * imgTracking = 0;
+	//create a blank image and assigned to 'imgTracking' which has the same size of original video
+	imgTracking = cvCreateImage(cvGetSize(frame), IPL_DEPTH_8U, 3);
+	cvZero(imgTracking); //covert the image, 'imgTracking' to black
+
+	cvNamedWindow("Video");
+
+	while (true){
+
+		frame = cvQueryFrame(capture);
+		if (!frame) break;
+		frame = cvCloneImage(frame);
+
+
+		IplImage* imgGrayScale = cvCreateImage(cvGetSize(frame), 8, 1);
+		IplImage* imgRGBScale = cvCreateImage(cvGetSize(frame), 8, 3);
+		cvCvtColor(frame, imgGrayScale, CV_RGB2GRAY);
+		cvCanny(imgGrayScale, imgGrayScale, 70, 170, 3);
+		CvMemStorage*   m_storage = cvCreateMemStorage(0);  // 배열 자료(점의 좌표가 들어간다)
+		CvMemStorage*   m_storage2 = cvCreateMemStorage(0);  // 배열 자료(점의 좌표가 들어간다)
+		CvSeq*   m_seq = 0;        // 경계 계수를 저장할 변수
+		CvSeq*   m_approxDP_seq = 0;
+		CvSeq*   m_dominant_points = 0;     // 특징점 찾기 위한 변수
+
+		// ConvexHull 변수 초기화 
+		int counterConvexHull;
+		CvSeq* hull = 0;
+		CvSeq* ptseq = cvCreateSeq(CV_SEQ_KIND_GENERIC | CV_32SC2, sizeof(CvContour), sizeof(CvPoint), m_storage);
+		CvSeq* defect = cvCreateSeq(CV_SEQ_KIND_GENERIC | CV_32SC2, sizeof(CvContour), sizeof(CvPoint), m_storage);
+
+		hull = cvConvexHull2(ptseq, m_storage2, CV_CLOCKWISE, 0);
+		counterConvexHull = hull->total;
+
+		// 컨벡스헐 공간에서 깊이가가장 큰 부분 구하기 위해 변수 선언(p1,p2 의 중간이 mid)
+		CvPoint p1, p2, mid;
+		double dist;
+
+		defect = cvConvexityDefects(ptseq, hull, m_storage2);
+		CvConvexityDefect *Item;
+
+		for (; defect; defect = defect->h_next)
+		{
+			int nomdef = defect->total;
+			Item = (CvConvexityDefect*)malloc(sizeof(CvConvexityDefect)*nomdef);
+			cvCvtSeqToArray(defect, Item, CV_WHOLE_SEQ);
+
+			for (int i = 0; i < nomdef; i++)
+			{
+				p1.x = Item[i].start->x;
+				p1.y = Item[i].start->y;
+				p2.x = Item[i].end->x;
+				p2.y = Item[i].end->y;
+				dist = GetDistance2D(p1, p2);
+				GetMidpoint(p1, p2, &mid);
+
+				cvCircle(frame, *Item[i].start, 2, CVX_RED, CV_FILLED);    // 컨벡스 결함으로 구한 점(외곽선)그리기
+				cvCircle(frame, *Item[i].depth_point, 2, CVX_GREEN, CV_FILLED);  // 컨벡스 결함으로 구한 점(뎁스깊이가 깊은것)그리기
+				cvLine(frame, p1, p2, CVX_RED, 1, 8, 0);         // 컨벡스헐 외곽선 그리기
+				cvLine(frame, mid, *Item[i].depth_point, CVX_GREEN, 1, 8, 0);   // 컨벡스헐 외곽선과 컨벡스결함으로 구한 점과 연결
+			}
+			free(Item);
+
+
+			cvCvtColor(imgGrayScale, imgRGBScale, CV_GRAY2BGR);
+			cvShowImage("Video", frame);
+
+			//Clean up used images
+			cvReleaseImage(&imgGrayScale);
+			cvReleaseImage(&frame);
+
+			//Wait 10mS
+			int c = cvWaitKey(10);
+			//If 'ESC' is pressed, break the loop
+			if ((char)c == 27) break;
+		}
+
+		cvDestroyAllWindows();
+		cvReleaseImage(&imgTracking);
+		cvReleaseCapture(&capture);
+
+		return 0;
+	}
+	}
